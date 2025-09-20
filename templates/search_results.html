@@ -1,32 +1,98 @@
 {% extends 'base.html' %}
+
+{% block title %}搜索结果 - {{ query }}{% endblock %}
+
 {% block content %}
-<div class="container mt-5">
-  <h2 class="mb-4">搜索结果: <span class="text-primary">"{{ query }}"</span></h2>
-  {% if not folders_results and not files_results %}
-  <div class="alert alert-warning text-center" role="alert">没有找到相关的文件夹或文件。</div>
-  {% endif %}
-  {% if folders_results %}
-  <h3 class="mt-5 mb-3">相关文件夹</h3>
-  <div class="list-group">
-    {% for folder in folders_results %}
-    <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="list-group-item list-group-item-action">
-      <h5 class="mb-1">{{ folder.name }}</h5>
-      <p class="mb-1 text-muted">{{ folder.description or '暂无说明' }}</p>
-    </a>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% if files_results %}
-  <h3 class="mt-5 mb-3">相关文件</h3>
-  <div class="list-group">
-    {% for file in files_results %}
-    <a href="{{ url_for('file_detail', file_id=file.id) }}" class="list-group-item list-group-item-action">
-      <h5 class="mb-1">{{ file.version or file.title or file.filename }}</h5>
-      <p class="mb-1 text-muted">{{ file.description or '暂无说明' }}</p>
-    </a>
-    {% endfor %}
-  </div>
-  {% endif %}
-  <div class="mt-4"><a href="{{ url_for('index') }}" class="btn btn-link">返回首页</a></div>
+<div class="container-fluid">
+    
+    {# 搜索框和上下文信息 #}
+    <div class="card shadow-sm mb-4" style="background-color: #fdfdff;">
+        <div class="card-body">
+            <h2 class="h4 mb-3">文件搜索 Pro</h2>
+            <form action="{{ url_for('search') }}" method="get" class="mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control form-control-lg" name="query" placeholder="输入关键词..." value="{{ query or '' }}" required>
+                    
+                    {# 保留搜索上下文 #}
+                    {% if folder_id %}
+                    <input type="hidden" name="folder_id" value="{{ folder_id }}">
+                    {% elif partition_id %}
+                    <input type="hidden" name="partition_id" value="{{ partition_id }}">
+                    {% endif %}
+                    
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-search me-2"></i>搜索</button>
+                </div>
+            </form>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <p class="text-muted mb-0">
+                    在 <strong>{{ search_context.type }}: {{ search_context.name or '' }}</strong> 范围内
+                    {% if query %}
+                        搜索 "<strong>{{ query }}</strong>"，
+                        找到 {{ files_results|length }} 个文件，{{ folders_results|length }} 个文件夹。
+                    {% else %}
+                        请输入关键词开始搜索。
+                    {% endif %}
+                </p>
+                {# 提供返回全站搜索的链接 #}
+                {% if folder_id or partition_id %}
+                <a href="{{ url_for('search', query=query) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-globe-asia me-1"></i> 返回全站搜索
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# 结果展示 #}
+    {% if query %}
+        <div class="row">
+            {# 文件结果 #}
+            <div class="col-lg-8">
+                <h3 class="h5 mb-3"><i class="fas fa-file-alt me-2 text-primary"></i>文件结果</h3>
+                {% if files_results %}
+                    <div class="list-group">
+                        {% for file in files_results %}
+                        <a href="{{ url_for('file_detail', file_id=file.id) }}" class="list-group-item list-group-item-action flex-column align-items-start">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1 text-primary">{{ file.title or file.filename }} {% if file.version %}<small class="text-muted">v{{ file.version }}</small>{% endif %}</h5>
+                                <small class="text-muted">{{ file.approve_time.split(' ')[0] if file.approve_time else '' }}</small>
+                            </div>
+                            <p class="mb-1">{{ file.description|truncate(150) }}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-folder-open me-1"></i>
+                                {% if file.partition_name %}{{ file.partition_name }} &gt;{% endif %}
+                                {% if file.group_name %}{{ file.group_name }} &gt;{% endif %}
+                                {{ file.folder_name }}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">在当前范围内没有找到匹配的文件。</div>
+                {% endif %}
+            </div>
+
+            {# 文件夹结果 #}
+            <div class="col-lg-4">
+                <h3 class="h5 mb-3"><i class="fas fa-folder me-2 text-warning"></i>文件夹结果</h3>
+                {% if folders_results %}
+                    <div class="list-group">
+                        {% for folder in folders_results %}
+                        <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="list-group-item list-group-item-action">
+                            <h6 class="mb-1 text-warning"><i class="fas fa-folder me-2"></i>{{ folder.name }}</h6>
+                            <small class="text-muted">
+                                {% if folder.partition_name %}{{ folder.partition_name }} &gt;{% endif %}
+                                {% if folder.group_name %}{{ folder.group_name }}{% endif %}
+                            </small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">在当前范围内没有找到匹配的文件夹。</div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -5,16 +5,26 @@
     <div class="card shadow">
       <div class="card-header bg-secondary text-white">编辑分组</div>
       <div class="card-body">
-        <form method="post">
+        <form method="post" action="{{ url_for('admin_edit_group', group_id=group.id) }}">
           <div class="mb-3">
             <label for="name" class="form-label">分组名称</label>
-            <input type="text" class="form-control" id="name" name="name" required value="{{ group.name }}">
+            <input type="text" class="form-control" id="name" name="name" value="{{ group.name }}" required>
           </div>
           <div class="mb-3">
             <label for="display_order" class="form-label">显示顺序</label>
             <input type="number" class="form-control" id="display_order" name="display_order" value="{{ group.display_order }}">
           </div>
-          <button type="submit" class="btn btn-secondary w-100">保存修改</button>
+          <div class="mb-3">
+            <label for="partition_id" class="form-label">所属分区</label>
+            <select class="form-select" id="partition_id" name="partition_id">
+              <option value="">无</option>
+              {% for p in partitions %}
+              <option value="{{ p.id }}" {% if p.id == group.partition_id %}selected{% endif %}>{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">保存更改</button>
+          <a href="{{ url_for('admin_groups') }}" class="btn btn-secondary">取消</a>
         </form>
       </div>
     </div>

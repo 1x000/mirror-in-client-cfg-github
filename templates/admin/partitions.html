@@ -1,0 +1,75 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}分区管理 - 后台{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 添加新分区 -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-plus-circle me-2"></i>添加新分区
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin_partitions') }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">分区名称</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="slug" class="form-label">URL 标识 (Slug)</label>
+                        <input type="text" class="form-control" id="slug" name="slug" required pattern="[a-z0-9-]+" title="只能使用小写字母、数字和连字符(-)">
+                        <div class="form-text">将用于URL，例如 /partition/your-slug。只能使用小写字母、数字和连字符。</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="display_order" class="form-label">显示顺序</label>
+                        <input type="number" class="form-control" id="display_order" name="display_order" value="0">
+                        <div class="form-text">数字越小，排序越靠前。</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分区列表 -->
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-stream me-2"></i>现有分区列表
+            </div>
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>顺序</th>
+                            <th>分区名称</th>
+                            <th>URL (Slug)</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partition in partitions %}
+                        <tr>
+                            <td>{{ partition.display_order }}</td>
+                            <td>{{ partition.name }}</td>
+                            <td>{{ partition.slug }}</td>
+                            <td>
+                                <a href="{{ url_for('admin_edit_partition', partition_id=partition.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
+                                <form action="{{ url_for('admin_delete_partition', partition_id=partition.id) }}" method="post" class="d-inline" onsubmit="return confirm('确定要删除这个分区吗？');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">暂无分区</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

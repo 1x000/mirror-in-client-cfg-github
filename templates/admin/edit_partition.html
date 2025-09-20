@@ -1,0 +1,35 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block title %}编辑分区 - 后台{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <i class="fas fa-edit me-2"></i>编辑分区
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin_edit_partition', partition_id=partition.id) }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">分区名称</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ partition.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="slug" class="form-label">URL 标识 (Slug)</label>
+                        <input type="text" class="form-control" id="slug" name="slug" value="{{ partition.slug }}" required pattern="[a-z0-9-]+" title="只能使用小写字母、数字和连字符(-)">
+                        <div class="form-text">将用于URL，例如 /partition/your-slug。只能使用小写字母、数字和连字符。</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="display_order" class="form-label">显示顺序</label>
+                        <input type="number" class="form-control" id="display_order" name="display_order" value="{{ partition.display_order }}">
+                        <div class="form-text">数字越小，排序越靠前。</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                    <a href="{{ url_for('admin_partitions') }}" class="btn btn-secondary">取消</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

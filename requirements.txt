@@ -6,3 +6,4 @@ jieba
 Flask-SocketIO
 psutil
 Werkzeug
+waitress

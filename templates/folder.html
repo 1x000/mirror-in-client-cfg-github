@@ -7,16 +7,15 @@
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
       {% for file in files %}
       <div class="col">
-        {# 使用 a 标签包裹整个卡片，使其可点击 #}
-        <a href="{{ url_for('file_detail', file_id=file.id) }}" class="text-decoration-none">
-          {#
-            核心改动：
-            1. 使用 Bootstrap 的 .card 类来创建带边框的卡片。
-            2. 添加 .h-100 使同一行的卡片等高。
-            3. 添加 .shadow-sm 和 .card-hover 类（见下方CSS）以增加视觉效果。
-          #}
-          <div class="card h-100 shadow-sm card-hover">
-            
+        {# 卡片本身不再是链接，以便点击复选框 #}
+        <div class="card h-100 shadow-sm card-hover">
+          {# 批量选择的复选框 #}
+          <div class="position-absolute top-0 end-0 p-2" style="z-index: 10;">
+            <input class="form-check-input file-checkbox" type="checkbox" name="file_ids" value="{{ file.id }}" onclick="event.stopPropagation();">
+          </div>
+          
+          {# 链接包裹图片和主体内容 #}
+          <a href="{{ url_for('file_detail', file_id=file.id) }}" class="text-decoration-none stretched-link-container">
             {# 卡片顶部图片区域 #}
             <div class="card-img-container">
               {% if file.filename.lower().endswith(('.png','.jpg','.jpeg','.gif','.bmp','.webp')) %}
@@ -39,8 +38,8 @@
                 <span>{{ file.formatted_date }}</span>
               </p>
             </div>
-          </div>
-        </a>
+          </a>
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -68,11 +67,56 @@
   </div>
 </div>
 <hr class="mb-4">
-{{ render_files(admin_files, '官方文件') }}
-{{ render_files(user_files, '社区分享') }}
-{% if not admin_files and not user_files %}
-<div class="col-12"><div class="alert alert-secondary text-center">此文件夹中暂无文件</div></div>
-{% endif %}
+<div class="container-fluid">
+    <form id="batch-download-form" action="{{ url_for('batch_download') }}" method="post">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="h2">{{ folder.name }}</h1>
+                <p class="text-muted">{{ folder.description }}</p>
+            </div>
+            <div class="btn-group">
+                <a href="{{ url_for('search', query='', folder_id=folder.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-search me-1"></i> 在当前文件夹内搜索
+                </a>
+                {% if partition_info %}
+                <a href="{{ url_for('search', query='', partition_id=partition_info.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-search-plus me-1"></i> 在 "{{ partition_info.name }}" 分区内搜索
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if admin_files or user_files %}
+        <div class="d-flex align-items-center mb-3">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="select-all-checkbox">
+                <label class="form-check-label" for="select-all-checkbox">
+                    全选
+                </label>
+            </div>
+            <button type="submit" id="batch-download-btn" class="btn btn-success ms-3" disabled>
+                <i class="fas fa-download me-1"></i> 打包下载选中文件
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            {# 管理员上传的文件 #}
+            <div class="col-12">
+              {{ render_files(admin_files, '官方文件') }}
+            </div>
+
+            {# 用户上传的文件 #}
+            <div class="col-12">
+              {{ render_files(user_files, '社区分享') }}
+            </div>
+
+            {% if not admin_files and not user_files %}
+            <div class="col-12"><div class="alert alert-secondary text-center">此文件夹中暂无文件</div></div>
+            {% endif %}
+        </div>
+    </form>
+</div>
 {% endblock %}
 
 
@@ -107,11 +151,61 @@
         left: 50%;
         transform: translate(-50%, -50%);
     }
-    .card a {
+    .card .stretched-link-container {
         text-decoration: none;
     }
     .card .card-title {
         line-height: 1.4;
     }
+    .card .stretched-link-container::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        content: "";
+    }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const fileCheckboxes = document.querySelectorAll('.file-checkbox');
+    const downloadBtn = document.getElementById('batch-download-btn');
+
+    if (!selectAllCheckbox) return;
+
+    function updateDownloadButtonState() {
+        const anyChecked = Array.from(fileCheckboxes).some(cb => cb.checked);
+        downloadBtn.disabled = !anyChecked;
+    }
+
+    selectAllCheckbox.addEventListener('change', function () {
+        fileCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateDownloadButtonState();
+    });
+
+    fileCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            if (!this.checked) {
+                selectAllCheckbox.checked = false;
+            } else {
+                const allChecked = Array.from(fileCheckboxes).every(cb => cb.checked);
+                if (allChecked) {
+                    selectAllCheckbox.checked = true;
+                }
+            }
+            updateDownloadButtonState();
+        });
+    });
+
+    // Initial state check
+    updateDownloadButtonState();
+});
+</script>
 {% endblock %}

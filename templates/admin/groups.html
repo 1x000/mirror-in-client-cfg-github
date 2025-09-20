@@ -16,6 +16,15 @@
           <div class="form-text">数字越小，排序越靠前。</div>
         </div>
         <div class="col-md-3">
+          <label for="partition_id" class="form-label">所属分区</label>
+          <select class="form-select" id="partition_id" name="partition_id">
+            <option value="">无</option>
+            {% for p in partitions %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
           <button type="submit" class="btn btn-primary w-100">添加分组</button>
         </div>
       </div>
@@ -26,23 +35,30 @@
 <div class="table-responsive">
   <table class="table table-bordered table-hover align-middle">
     <thead class="table-light">
-      <tr><th>ID</th><th>分组名称</th><th>显示顺序</th><th>操作</th></tr>
+      <tr>
+        <th>顺序</th>
+        <th>分组名称</th>
+        <th>所属分区</th>
+        <th>操作</th>
+      </tr>
     </thead>
     <tbody>
       {% for group in groups %}
       <tr>
-        <td>{{ group.id }}</td>
-        <td>{{ group.name }}</td>
         <td>{{ group.display_order }}</td>
+        <td>{{ group.name }}</td>
+        <td>{{ group.partition_name or '无' }}</td>
         <td>
-          <a href="{{ url_for('admin_edit_group', group_id=group.id) }}" class="btn btn-outline-primary btn-sm">编辑</a>
+          <a href="{{ url_for('admin_edit_group', group_id=group.id) }}" class="btn btn-sm btn-outline-primary">编辑</a>
           <form method="post" action="{{ url_for('admin_delete_group', group_id=group.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除“{{ group.name }}”这个分组吗？文件夹不会被删除。')">
             <button type="submit" class="btn btn-danger btn-sm">删除</button>
           </form>
         </td>
       </tr>
       {% else %}
-      <tr><td colspan="4" class="text-center text-muted py-4">暂无分组</td></tr>
+      <tr>
+        <td colspan="4" class="text-center text-muted">暂无分组</td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>

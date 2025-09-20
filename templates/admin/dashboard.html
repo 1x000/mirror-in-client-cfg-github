@@ -16,6 +16,7 @@
       <div class="card-header bg-dark text-white">后台管理</div>
       <div class="card-body">
         <div class="d-grid gap-3">
+          <a href="{{ url_for('admin_partitions') }}" class="btn btn-warning btn-lg">分区管理</a>
           <a href="{{ url_for('admin_review') }}" class="btn btn-primary btn-lg">用户文件审核</a>
           <a href="{{ url_for('admin_all_files') }}" class="btn btn-success btn-lg">文件总览与管理</a>
           <a href="{{ url_for('admin_groups') }}" class="btn btn-info btn-lg">分组管理</a>

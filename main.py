@@ -121,6 +121,55 @@ def _serve_pil_image(pil_img):
     img_io = io.BytesIO(); pil_img.save(img_io, 'PNG'); img_io.seek(0)
     return send_file(img_io, mimetype='image/png')
 
+@app.route('/placeholder/<text>')
+def placeholder_image(text):
+    """
+    根据给定的文本动态生成一张占位符图片。
+    """
+    try:
+        width, height = 200, 200
+        # 使用一个中性、柔和的背景色
+        bg_color = (230, 230, 230)
+        img = Image.new('RGB', (width, height), color=bg_color)
+        draw = ImageDraw.Draw(img)
+
+        # 尝试从配置中加载字体，如果失败则使用Pillow的默认字体
+        try:
+            # 字体路径已在配置中定义
+            font_path = app.config.get('WORDCLOUD_FONT_PATH', 'msyh.ttc')
+            # 根据图片大小选择合适的字体大小
+            font_size = 30
+            font = ImageFont.truetype(font_path, size=font_size)
+        except IOError:
+            print(f"警告: 字体文件 {app.config.get('WORDCLOUD_FONT_PATH')} 未找到，将使用默认字体。")
+            font = ImageFont.load_default()
+
+        # 计算文本尺寸以实现居中
+        # 使用 textbbox 获取更精确的边界框
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # 确保文本不会超出图片范围，如果太长就截断
+        if text_width > width - 20:
+            text = text[:int(len(text) * (width - 20) / text_width)] + '...'
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+
+        x = (width - text_width) / 2
+        y = (height - text_height) / 2
+
+        # 绘制文本
+        draw.text((x, y), text, fill=(100, 100, 100), font=font)
+
+        # 使用已有的辅助函数来返回图片响应
+        return _serve_pil_image(img)
+    except Exception as e:
+        app.logger.error(f"生成占位图失败，文本: '{text}', 错误: {e}")
+        # 如果发生错误，中止并返回服务器内部错误
+        abort(500)
+
 def get_bilibili_embed_url(original_url):
     if not original_url: return None
     match = re.search(r'(BV[a-zA-Z0-9_]{10})', original_url)

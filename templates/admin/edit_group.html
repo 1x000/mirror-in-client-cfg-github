@@ -1,0 +1,23 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-secondary text-white">编辑分组</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label for="name" class="form-label">分组名称</label>
+            <input type="text" class="form-control" id="name" name="name" required value="{{ group.name }}">
+          </div>
+          <div class="mb-3">
+            <label for="display_order" class="form-label">显示顺序</label>
+            <input type="number" class="form-control" id="display_order" name="display_order" value="{{ group.display_order }}">
+          </div>
+          <button type="submit" class="btn btn-secondary w-100">保存修改</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

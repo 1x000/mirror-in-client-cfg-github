@@ -1,0 +1,31 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<h3 class="mb-4">待审核文件</h3>
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+      <tr><th>文件名</th><th>标题</th><th>版本</th><th>上传者</th><th>文件夹</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <td class="text-break">{{ file.filename }}</td>
+        <td>{{ file.title or '-' }}</td>
+        <td>{{ file.version or '-' }}</td>
+        <td>{{ file.username or '未知' }}</td>
+        <td>{{ file.folder_name or '未知' }}</td>
+        <td>
+          <a href="{{ url_for('admin_review_action', file_id=file.id, action='approve') }}" class="btn btn-success btn-sm">通过</a>
+          <a href="{{ url_for('admin_review_action', file_id=file.id, action='reject') }}" class="btn btn-danger btn-sm">拒绝</a>
+          <form method="post" action="{{ url_for('admin_delete_file', file_id=file.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除该文件吗？')">
+            <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted py-4">暂无待审核文件</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

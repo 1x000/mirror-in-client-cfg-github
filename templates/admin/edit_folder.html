@@ -1,0 +1,41 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-secondary text-white">编辑文件夹</div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="name" class="form-label">文件夹名</label>
+            <input type="text" class="form-control" id="name" name="name" required value="{{ folder.name }}">
+          </div>
+          <div class="mb-3">
+            <label for="group_id" class="form-label">所属分组</label>
+            <select class="form-select" id="group_id" name="group_id">
+              <option value="">-- 未分组 --</option>
+              {% for group in groups %}<option value="{{ group.id }}" {% if group.id == folder.group_id %}selected{% endif %}>{{ group.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">说明</label>
+            <input type="text" class="form-control" id="description" name="description" value="{{ folder.description or '' }}">
+          </div>
+          <div class="mb-3">
+            <label for="logo_file" class="form-label">文件夹Logo</label>
+            <input type="file" class="form-control" id="logo_file" name="logo_file" accept="image/*">
+            <div class="form-text">如果上传新Logo，将会替换旧的。</div>
+          </div>
+          {% if folder.logo_filename %}
+          <div class="mb-3">
+              <label class="form-label">当前 Logo:</label>
+              <div><img src="{{ url_for('static', filename='logos/' + folder.logo_filename) }}" alt="Current Logo" class="img-thumbnail" style="max-width: 150px;"></div>
+          </div>
+          {% endif %}
+          <button type="submit" class="btn btn-secondary w-100">保存修改</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

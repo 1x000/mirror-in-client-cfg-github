@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{# 定义一个宏，用于渲染文件列表 #}
+{% macro render_files(files, title) %}
+  {% if files %}
+    <h3 class="mb-3 mt-4 border-bottom pb-2">{{ title }}</h3>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+      {% for file in files %}
+      <div class="col">
+        {# 使用 a 标签包裹整个卡片，使其可点击 #}
+        <a href="{{ url_for('file_detail', file_id=file.id) }}" class="text-decoration-none">
+          {#
+            核心改动：
+            1. 使用 Bootstrap 的 .card 类来创建带边框的卡片。
+            2. 添加 .h-100 使同一行的卡片等高。
+            3. 添加 .shadow-sm 和 .card-hover 类（见下方CSS）以增加视觉效果。
+          #}
+          <div class="card h-100 shadow-sm card-hover">
+            
+            {# 卡片顶部图片区域 #}
+            <div class="card-img-container">
+              {% if file.filename.lower().endswith(('.png','.jpg','.jpeg','.gif','.bmp','.webp')) %}
+                <img src="{{ url_for('static', filename='uploads/' + file.filename) }}" class="card-img-top" alt="{{ file.title or file.filename }}">
+              {% else %}
+                {# 文件图标占位符 #}
+                <div class="default-icon-wrapper">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                </div>
+              {% endif %}
+              <div class="position-absolute bottom-0 end-0 m-2">
+                <span class="badge rounded-pill bg-dark bg-opacity-75 px-2 py-1">{{ file.filename.split('.')[-1] | upper }}</span>
+              </div>
+            </div>
+
+            {# 卡片主体内容区域 #}
+            <div class="card-body p-3">
+              <h6 class="card-title fw-bold text-dark mb-2 text-truncate" title="{{ file.version or file.title or file.filename }}">{{ file.version or file.title or file.filename }}</h6>
+              <p class="card-text small text-muted mb-0 d-flex justify-content-between">
+                <span>{{ file.formatted_date }}</span>
+              </p>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+
+{% block top_actions %}
+<a href="{{ url_for('index') }}" class="btn btn-link ps-0">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
+  返回首页
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex align-items-center">
+  {% if folder.logo_filename %}
+    <img src="{{ url_for('static', filename='logos/' + folder.logo_filename) }}" alt="{{ folder.name }} logo" class="me-3 rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+  {% else %}
+    <img src="{{ url_for('placeholder_image', text=folder.name) }}" alt="{{ folder.name }} placeholder" class="me-3 rounded shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+  {% endif %}
+  <div class="flex-grow-1">
+    <h2 class="h4">{{ folder.name }}</h2>
+    <p class="text-muted mb-0 small">{{ folder.description or '暂无说明' }}</p>
+  </div>
+</div>
+<hr class="mb-4">
+{{ render_files(admin_files, '官方文件') }}
+{{ render_files(user_files, '社区分享') }}
+{% if not admin_files and not user_files %}
+<div class="col-12"><div class="alert alert-secondary text-center">此文件夹中暂无文件</div></div>
+{% endif %}
+{% endblock %}
+
+
+{% block extra_css %}
+{# 为了让卡片样式更好看，可以把这段CSS加到你的 base.html 或者主CSS文件里 #}
+<style>
+    .card-hover {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .card-img-container {
+        width: 100%;
+        padding-top: 56.25%; /* 16:9 宽高比，类似视频缩略图 */
+        position: relative;
+        background-color: #f1f3f5;
+        overflow: hidden; /* 隐藏超出部分 */
+    }
+    .card-img-container .card-img-top {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* 保证图片填满容器，不变形 */
+    }
+    .card-img-container .default-icon-wrapper {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    .card a {
+        text-decoration: none;
+    }
+    .card .card-title {
+        line-height: 1.4;
+    }
+</style>
+{% endblock %}

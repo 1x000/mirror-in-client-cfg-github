@@ -1,0 +1,28 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header"><i class="fas fa-chart-line me-2"></i>站点统计</div>
+            <div class="card-body">
+                <p class="card-text">全站总下载量: <strong>{{ total_downloads }}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-dark text-white">后台管理</div>
+      <div class="card-body">
+        <div class="d-grid gap-3">
+          <a href="{{ url_for('admin_review') }}" class="btn btn-primary btn-lg">用户文件审核</a>
+          <a href="{{ url_for('admin_all_files') }}" class="btn btn-success btn-lg">文件总览与管理</a>
+          <a href="{{ url_for('admin_groups') }}" class="btn btn-info btn-lg">分组管理</a>
+          <a href="{{ url_for('admin_folders') }}" class="btn btn-secondary btn-lg">文件夹管理</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

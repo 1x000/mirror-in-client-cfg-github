@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow">
+        {% if current_user.is_admin %}
+        <div class="card-header bg-primary text-white">管理员上传 (无限制)</div>
+        {% else %}
+        <div class="card-header bg-warning text-dark">用户上传 (文件需要审核)</div>
+        {% endif %}
+        <div class="card-body">
+          {% if not folders %}
+            <div class="alert alert-info text-center">暂无可用文件夹，请联系管理员添加。</div>
+          {% else %}
+          {% if not current_user.is_admin %}
+          <div class="alert alert-info small">
+            <h6 class="alert-heading">上传须知</h6>
+            <ul class="mb-0">
+              <li>每日上传数量上限为 <strong>{{ config.USER_UPLOAD_LIMIT_PER_DAY }}</strong> 个文件。</li>
+              <li>仅允许上传 <strong>{{ allowed_extensions|join(', ') }}</strong> 类型的文件。</li>
+              <li>建议将多个文件打包成一个压缩包 (zip, 7z) 后再上传。</li>
+              <li>单文件最大支持 <strong>500MB</strong>。</li>
+            </ul>
+          </div>
+          {% endif %}
+
+          <form id="uploadForm" method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="folder_id" class="form-label">选择文件夹</label>
+              <select class="form-select" id="folder_id" name="folder_id" required>
+                <option value="" disabled selected>请选择</option>
+                {% for folder in folders %}<option value="{{ folder.id }}">{{ folder.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="title" class="form-label">标题</label>
+              <input type="text" class="form-control" id="title" name="title" maxlength="100">
+            </div>
+            <div class="mb-3">
+              <label for="version" class="form-label">版本号</label>
+              <input type="text" class="form-control" id="version" name="version" maxlength="50" placeholder="例如：v1.2.0">
+            </div>
+            <div class="mb-3">
+              <label for="description" class="form-label">说明</label>
+              <textarea class="form-control" id="description" name="description" rows="3" maxlength="500"></textarea>
+            </div>
+            <hr>
+            <div class="mb-3">
+              <label for="file" class="form-label fw-bold">主文件 (必须)</label>
+              <input type="file" class="form-control" id="file" name="file" required>
+            </div>
+            <div class="mb-3">
+              <label for="proof_files" class="form-label">说明/杀毒证明图片 (可选, 可多选)</label>
+              <input type="file" class="form-control" id="proof_files" name="proof_files" accept="image/*" multiple>
+            </div>
+            <div class="mb-3">
+              <label for="bilibili_link" class="form-label">Bilibili 视频链接 (可选)</label>
+              <input type="url" class="form-control" id="bilibili_link" name="bilibili_link" placeholder="https://www.bilibili.com/video/BV...">
+            </div>
+            <hr>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="login_required" id="login_required" checked>
+              <label class="form-check-label" for="login_required">需要登录后才能下载</label>
+            </div>
+            {% if current_user.is_admin %}
+            <button type="submit" class="btn btn-primary w-100" id="submitBtn">直接发布</button>
+            {% else %}
+            <button type="submit" class="btn btn-warning w-100" id="submitBtn">提交审核</button>
+            {% endif %}
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 可选：添加简单进度条或文件大小校验 -->
+{% endblock %}

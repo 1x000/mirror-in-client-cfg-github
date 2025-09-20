@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block top_actions %}
+<a href="{{ url_for('folder_detail', folder_id=file.folder_id) }}" class="btn btn-link ps-0">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
+  返回文件夹
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <h4 class="mb-0">{{ file.version or file.title or file.filename }}</h4>
+    <div>
+      {% if file.login_required %}<span class="badge bg-warning text-dark" title="需要登录才能下载">受保护</span>
+      {% else %}<span class="badge bg-success" title="无需登录即可下载">公开</span>{% endif %}
+      {% if file.upload_type == 'admin' %}<span class="badge bg-primary">官方</span>
+      {% else %}<span class="badge bg-light text-dark">社区</span>{% endif %}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row g-4">
+      
+      <!-- ==================== 左侧内容区 ==================== -->
+      <div class="col-lg-8">
+        <h5>文件详情</h5>
+        <table class="table table-sm table-borderless">
+          <tbody>
+            <tr><th scope="row" style="width: 100px;">版本号</th><td>{{ file.version or '未指定' }}</td></tr>
+            <tr><th scope="row">标题</th><td>{{ file.title or '无' }}</td></tr>
+            <tr><th scope="row">所属文件夹</th><td>{{ folder.name }}</td></tr>
+            <tr><th scope="row">文件名</th><td><span class="text-break">{{ file.filename }}</span></td></tr>
+          </tbody>
+        </table>
+        
+        <hr>
+        
+        <h6>说明</h6>
+        <p>{{ file.description or '暂无说明' }}</p>
+
+        <!-- Bilibili 视频嵌入 -->
+        {% if embed_url %}
+        <div class="mt-4">
+          <h5>相关视频</h5>
+          <div class="ratio ratio-16x9">
+            <iframe src="{{ embed_url }}" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- 下载按钮 -->
+        <div class="d-grid gap-2 mt-4">
+          <a href="{{ url_for('verify_download', file_id=file.id) }}" class="btn btn-primary btn-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+            下载文件
+          </a>
+        </div>
+        
+        <!-- 主文件图片预览 -->
+        {% if file.filename.lower().endswith(('.png','.jpg','.jpeg','.gif','.bmp','.webp')) %}
+        <div class="mt-4">
+          <h5>主文件预览</h5>
+          <img src="{{ url_for('static', filename='uploads/' + file.filename) }}" class="img-fluid rounded shadow-sm" alt="预览">
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ==================== 右侧内容区 ==================== -->
+      <div class="col-lg-4">
+        {% if proof_images %}
+          <h5>说明/证明图片</h5>
+          <div id="proofCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+              {% for image in proof_images %}
+              <button type="button" data-bs-target="#proofCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{{ 'active' if loop.first }}" aria-current="true" aria-label="Slide {{ loop.index }}"></button>
+              {% endfor %}
+            </div>
+            <div class="carousel-inner rounded shadow-sm">
+              {% for image in proof_images %}
+              <div class="carousel-item {{ 'active' if loop.first }}">
+                <img src="{{ url_for('static', filename='proofs/' + image.filename) }}" class="d-block w-100" alt="证明图片 {{ loop.index }}">
+              </div>
+              {% endfor %}
+            </div>
+            {% if proof_images|length > 1 %}
+            <button class="carousel-control-prev" type="button" data-bs-target="#proofCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#proofCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              <span class="visually-hidden">Next</span>
+            </button>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="text-center text-muted p-4 border rounded bg-light">
+            <p class="mb-0">无说明图片</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

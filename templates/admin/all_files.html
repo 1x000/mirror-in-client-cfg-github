@@ -1,0 +1,40 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<h3 class="mb-4">文件总览</h3>
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+      <tr><th>文件名</th><th>上传者</th><th>文件夹</th><th>状态</th><th>类型</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <td class="text-break" title="{{ file.title or file.filename }}">{{ file.title or file.filename }}</td>
+        <td>{{ file.username or '未知' }}</td>
+        <td>{{ file.folder_name or '未知' }}</td>
+        <td>
+          {% if file.status == 'pending' %}<span class="badge bg-warning text-dark">待审核</span>
+          {% elif file.status == 'approved' %}<span class="badge bg-success">已通过</span>
+          {% elif file.status == 'rejected' %}<span class="badge bg-danger">已拒绝</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if file.upload_type == 'admin' %}<span class="badge bg-primary">官方</span>
+          {% else %}<span class="badge bg-secondary">用户</span>{% endif %}
+        </td>
+        <td>
+          <!-- 管理员可以直接编辑任何文件 -->
+          <a href="{{ url_for('edit_my_file', file_id=file.id) }}" class="btn btn-outline-primary btn-sm">编辑</a>
+          <!-- 管理员可以删除任何文件 -->
+          <form method="post" action="{{ url_for('delete_my_file', file_id=file.id) }}" style="display:inline;" onsubmit="return confirm('确定要永久删除该文件吗？')">
+            <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted py-4">暂无任何文件</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

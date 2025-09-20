@@ -1,0 +1,262 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-10">
+    <div class="card shadow">
+      <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">网站设置</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <!-- 基本设置 -->
+          <div class="mb-4">
+            <h6 class="text-primary">基本设置</h6>
+            <div class="mb-3">
+              <label for="footer_text" class="form-label">页脚文本</label>
+              <textarea class="form-control" id="footer_text" name="footer_text" rows="3">{{ site_settings.footer_text }}</textarea>
+            </div>
+          </div>
+
+          <!-- FTP设置 -->
+          <div class="mb-4">
+            <h6 class="text-primary">FTP设置</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="ftp_enabled" name="ftp_enabled" 
+                         {% if site_settings.get('ftp_enabled') == '1' %}checked{% endif %}>
+                  <label class="form-check-label" for="ftp_enabled">
+                    启用FTP存储
+                  </label>
+                </div>
+                <div class="mb-3">
+                  <label for="ftp_host" class="form-label">FTP服务器地址</label>
+                  <input type="text" class="form-control" id="ftp_host" name="ftp_host" 
+                         value="{{ site_settings.get('ftp_host', '') }}" placeholder="ftp.example.com">
+                </div>
+                <div class="mb-3">
+                  <label for="ftp_port" class="form-label">FTP端口</label>
+                  <input type="number" class="form-control" id="ftp_port" name="ftp_port" 
+                         value="{{ site_settings.get('ftp_port', '21') }}" placeholder="21">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="ftp_username" class="form-label">FTP用户名</label>
+                  <input type="text" class="form-control" id="ftp_username" name="ftp_username" 
+                         value="{{ site_settings.get('ftp_username', '') }}" placeholder="username">
+                </div>
+                <div class="mb-3">
+                  <label for="ftp_password" class="form-label">FTP密码</label>
+                  <input type="password" class="form-control" id="ftp_password" name="ftp_password" 
+                         value="{{ site_settings.get('ftp_password', '') }}" placeholder="password">
+                </div>
+                <div class="mb-3">
+                  <button type="button" class="btn btn-outline-info btn-sm" onclick="testFTP()">测试FTP连接</button>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="ftp_upload_path" class="form-label">FTP上传路径</label>
+                  <input type="text" class="form-control" id="ftp_upload_path" name="ftp_upload_path" 
+                         value="{{ site_settings.get('ftp_upload_path', '/uploads') }}" placeholder="/uploads">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="ftp_download_path" class="form-label">FTP下载路径</label>
+                  <input type="text" class="form-control" id="ftp_download_path" name="ftp_download_path" 
+                         value="{{ site_settings.get('ftp_download_path', '/downloads') }}" placeholder="/downloads">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 缓存设置 -->
+          <div class="mb-4">
+            <h6 class="text-primary">缓存设置</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="cache_enabled" name="cache_enabled" 
+                         {% if site_settings.get('cache_enabled') == '1' %}checked{% endif %}>
+                  <label class="form-check-label" for="cache_enabled">
+                    启用文件缓存
+                  </label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="cache_expire_hours" class="form-label">缓存过期时间（小时）</label>
+                  <input type="number" class="form-control" id="cache_expire_hours" name="cache_expire_hours" 
+                         value="{{ site_settings.get('cache_expire_hours', '24') }}" min="1" max="168">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 公告设置 -->
+          <div class="mb-4">
+            <h6 class="text-primary">公告设置</h6>
+            <div id="announcements">
+              {% for announcement in site_settings.announcements %}
+              <div class="announcement-item mb-3 p-3 border rounded">
+                <div class="row">
+                  <div class="col-md-4">
+                    <input type="date" class="form-control" name="announcement_date_{{ loop.index0 }}" 
+                           value="{{ announcement.date }}" placeholder="日期">
+                  </div>
+                  <div class="col-md-8">
+                    <input type="text" class="form-control" name="announcement_text_{{ loop.index0 }}" 
+                           value="{{ announcement.text }}" placeholder="公告内容">
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addAnnouncement()">添加公告</button>
+          </div>
+
+          <!-- 链接设置 -->
+          <div class="mb-4">
+            <h6 class="text-primary">链接设置</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <h6>联系方式</h6>
+                <div id="contact_links">
+                  {% for link in site_settings.contact_links %}
+                  <div class="link-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="contact_text_{{ loop.index0 }}" 
+                             value="{{ link.text }}" placeholder="链接文本">
+                      <input type="url" class="form-control" name="contact_url_{{ loop.index0 }}" 
+                             value="{{ link.url }}" placeholder="链接地址">
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addContactLink()">添加联系方式</button>
+              </div>
+              <div class="col-md-6">
+                <h6>相关链接</h6>
+                <div id="related_links">
+                  {% for link in site_settings.related_links %}
+                  <div class="link-item mb-2">
+                    <div class="input-group">
+                      <input type="text" class="form-control" name="related_text_{{ loop.index0 }}" 
+                             value="{{ link.text }}" placeholder="链接文本">
+                      <input type="url" class="form-control" name="related_url_{{ loop.index0 }}" 
+                             value="{{ link.url }}" placeholder="链接地址">
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRelatedLink()">添加相关链接</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">保存设置</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let announcementIndex = {{ site_settings.announcements|length }};
+let contactIndex = {{ site_settings.contact_links|length }};
+let relatedIndex = {{ site_settings.related_links|length }};
+
+function addAnnouncement() {
+  const container = document.getElementById('announcements');
+  const div = document.createElement('div');
+  div.className = 'announcement-item mb-3 p-3 border rounded';
+  div.innerHTML = `
+    <div class="row">
+      <div class="col-md-4">
+        <input type="date" class="form-control" name="announcement_date_${announcementIndex}" placeholder="日期">
+      </div>
+      <div class="col-md-8">
+        <input type="text" class="form-control" name="announcement_text_${announcementIndex}" placeholder="公告内容">
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+  announcementIndex++;
+}
+
+function addContactLink() {
+  const container = document.getElementById('contact_links');
+  const div = document.createElement('div');
+  div.className = 'link-item mb-2';
+  div.innerHTML = `
+    <div class="input-group">
+      <input type="text" class="form-control" name="contact_text_${contactIndex}" placeholder="链接文本">
+      <input type="url" class="form-control" name="contact_url_${contactIndex}" placeholder="链接地址">
+    </div>
+  `;
+  container.appendChild(div);
+  contactIndex++;
+}
+
+function addRelatedLink() {
+  const container = document.getElementById('related_links');
+  const div = document.createElement('div');
+  div.className = 'link-item mb-2';
+  div.innerHTML = `
+    <div class="input-group">
+      <input type="text" class="form-control" name="related_text_${relatedIndex}" placeholder="链接文本">
+      <input type="url" class="form-control" name="related_url_${relatedIndex}" placeholder="链接地址">
+    </div>
+  `;
+  container.appendChild(div);
+  relatedIndex++;
+}
+
+function testFTP() {
+  const host = document.getElementById('ftp_host').value;
+  const port = document.getElementById('ftp_port').value;
+  const username = document.getElementById('ftp_username').value;
+  const password = document.getElementById('ftp_password').value;
+  
+  if (!host || !username || !password) {
+    alert('请填写完整的FTP连接信息');
+    return;
+  }
+  
+  // 先保存当前配置到数据库
+  const formData = new FormData();
+  formData.append('ftp_enabled', document.getElementById('ftp_enabled').checked ? 'on' : '');
+  formData.append('ftp_host', host);
+  formData.append('ftp_port', port);
+  formData.append('ftp_username', username);
+  formData.append('ftp_password', password);
+  formData.append('ftp_upload_path', document.getElementById('ftp_upload_path').value);
+  formData.append('ftp_download_path', document.getElementById('ftp_download_path').value);
+  
+  fetch('{{ url_for("admin_settings") }}', {
+    method: 'POST',
+    body: formData
+  }).then(() => {
+    // 测试连接
+    return fetch('{{ url_for("test_ftp_connection") }}', {
+      method: 'POST'
+    });
+  }).then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('FTP连接成功！');
+    } else {
+      alert('FTP连接失败：' + data.message);
+    }
+  }).catch(error => {
+    alert('测试连接时出错：' + error.message);
+  });
+}
+</script>
+{% endblock %}

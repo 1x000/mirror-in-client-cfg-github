@@ -1,0 +1,50 @@
+{% extends 'admin/admin_base.html' %}
+{% block content %}
+<h3 class="mb-4">分组管理</h3>
+<div class="card shadow-sm mb-4">
+  <div class="card-header">添加新分组</div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('admin_groups') }}">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label for="name" class="form-label">分组名称</label>
+          <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="col-md-3">
+          <label for="display_order" class="form-label">显示顺序</label>
+          <input type="number" class="form-control" id="display_order" name="display_order" value="0">
+          <div class="form-text">数字越小，排序越靠前。</div>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">添加分组</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+      <tr><th>ID</th><th>分组名称</th><th>显示顺序</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      <tr>
+        <td>{{ group.id }}</td>
+        <td>{{ group.name }}</td>
+        <td>{{ group.display_order }}</td>
+        <td>
+          <a href="{{ url_for('admin_edit_group', group_id=group.id) }}" class="btn btn-outline-primary btn-sm">编辑</a>
+          <form method="post" action="{{ url_for('admin_delete_group', group_id=group.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除“{{ group.name }}”这个分组吗？文件夹不会被删除。')">
+            <button type="submit" class="btn btn-danger btn-sm">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="text-center text-muted py-4">暂无分组</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

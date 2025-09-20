@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h2 class="mb-4">搜索结果: <span class="text-primary">"{{ query }}"</span></h2>
+  {% if not folders_results and not files_results %}
+  <div class="alert alert-warning text-center" role="alert">没有找到相关的文件夹或文件。</div>
+  {% endif %}
+  {% if folders_results %}
+  <h3 class="mt-5 mb-3">相关文件夹</h3>
+  <div class="list-group">
+    {% for folder in folders_results %}
+    <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="list-group-item list-group-item-action">
+      <h5 class="mb-1">{{ folder.name }}</h5>
+      <p class="mb-1 text-muted">{{ folder.description or '暂无说明' }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if files_results %}
+  <h3 class="mt-5 mb-3">相关文件</h3>
+  <div class="list-group">
+    {% for file in files_results %}
+    <a href="{{ url_for('file_detail', file_id=file.id) }}" class="list-group-item list-group-item-action">
+      <h5 class="mb-1">{{ file.version or file.title or file.filename }}</h5>
+      <p class="mb-1 text-muted">{{ file.description or '暂无说明' }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="mt-4"><a href="{{ url_for('index') }}" class="btn btn-link">返回首页</a></div>
+</div>
+{% endblock %}

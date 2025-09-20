@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <h3 class="mb-4">文件夹管理</h3>
+  <form method="post" class="mb-4">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label for="name" class="form-label">文件夹名</label>
+        <!-- 添加 required 属性 -->
+        <input type="text" class="form-control" id="name" name="name" required>
+      </div>
+      <div class="col-md-6">
+        <label for="description" class="form-label">说明</label>
+        <input type="text" class="form-control" id="description" name="description">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">添加</button>
+      </div>
+    </div>
+  </form>
+  <table class="table table-bordered table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>文件夹名</th>
+        <th>说明</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for folder in folders %}
+      <tr>
+        <td>{{ folder[0] }}</td>
+        <td>{{ folder[1] }}</td>
+        <td>{{ folder[2] or '-' }}</td>
+        <td>
+          <a href="{{ url_for('admin_edit_folder', folder_id=folder[0]) }}" class="btn btn-outline-primary btn-sm">编辑</a>
+          <form method="post" action="{{ url_for('admin_delete_folder', folder_id=folder[0]) }}" style="display:inline;" onsubmit="return confirm('确定要删除该文件夹吗？')">
+            <button type="submit" class="btn btn-danger btn-sm">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="text-center text-muted">暂无文件夹</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <a href="{{ url_for('admin_dashboard') }}" class="btn btn-link">返回后台首页</a>
+</div>
+{% endblock %}

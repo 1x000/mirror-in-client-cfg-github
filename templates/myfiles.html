@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block top_actions %}
+<a href="{{ url_for('upload') }}" class="btn btn-primary">上传新文件</a>
+{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">我的文件</h3>
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-light">
+      <tr><th>文件名</th><th>标题</th><th>版本</th><th>文件夹</th><th>状态</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for file in files %}
+      <tr>
+        <td class="text-break">{{ file.filename }}</td>
+        <td>{{ file.title or '-' }}</td>
+        <td>{{ file.version or '-' }}</td>
+        <td>{{ file.folder_name or '-' }}</td>
+        <td>
+          {% if file.status == 'pending' %}<span class="badge bg-warning text-dark">待审核</span>
+          {% elif file.status == 'approved' %}<span class="badge bg-success">已通过</span>
+          {% elif file.status == 'rejected' %}<span class="badge bg-danger">已拒绝</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if file.status != 'approved' %}
+          <a href="{{ url_for('edit_my_file', file_id=file.id) }}" class="btn btn-outline-primary btn-sm">编辑</a>
+          <form method="post" action="{{ url_for('delete_my_file', file_id=file.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除该文件吗？')">
+            <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
+          </form>
+          {% else %}
+          <span class="text-muted small">不可操作</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-center text-muted py-4">暂无上传文件</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

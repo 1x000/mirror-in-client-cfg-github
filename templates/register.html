@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header bg-primary text-white">注册</div>
+        <div class="card-body">
+          <form method="post" id="register-form">
+            <div class="mb-3">
+              <label for="username" class="form-label">用户名</label>
+              <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">密码</label>
+              <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            
+            <!-- CAPTCHA 容器 -->
+            <div class="mb-3">
+                <div id="captcha-container" class="mx-auto" style="width: 300px;">
+                    <div class="d-flex justify-content-center align-items-center" style="height: 185px;">
+                        <div class="spinner-border text-secondary" role="status"><span class="visually-hidden">Loading...</span></div>
+                    </div>
+                </div>
+                <input type="hidden" id="captcha_response" name="captcha_response">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">注册</button>
+          </form>
+          <div class="mt-3 text-center">已有账号？<a href="{{ url_for('login') }}">登录</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 此处的JavaScript代码与 login.html 中的完全相同
+document.addEventListener('DOMContentLoaded', function() {
+    const captchaContainer = document.getElementById('captcha-container');
+    const captchaResponseInput = document.getElementById('captcha_response');
+    const pieceSize = 40;
+
+    function loadCaptcha() {
+        fetch('{{ url_for("generate_captcha") }}')
+            .then(response => {
+                if (!response.ok) throw new Error('Captcha generation failed');
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    captchaContainer.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                const sliderHTML = `
+                    <div style="position: relative; width: 300px; height: 150px; user-select: none; border-radius: 4px; overflow: hidden;">
+                        <img src="${data.bg_url}" style="width: 100%; height: 100%;" ondragstart="return false;">
+                        <img src="${data.piece_url}" id="slider-piece" style="position: absolute; left: 0px; top: ${data.y_pos}px; width: ${pieceSize}px; height: ${pieceSize}px; cursor: grab; filter: drop-shadow(0px 0px 3px rgba(0,0,0,0.5));" ondragstart="return false;">
+                    </div>
+                    <div class="slider-track" style="position: relative; width: 300px; height: 35px; background-color: #f0f0f0; border-radius: 4px; text-align: center; line-height: 35px; color: #888; margin-top: 5px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">
+                        <div class="slider-handle" style="position: absolute; left: 0; top: 0; width: 40px; height: 100%; background-color: #fff; border: 1px solid #ccc; border-radius: 3px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#666" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+                        </div>
+                        <span class="slider-text">向右拖动滑块完成拼图</span>
+                    </div>
+                `;
+                captchaContainer.innerHTML = sliderHTML;
+                
+                const piece = document.getElementById('slider-piece');
+                const handle = captchaContainer.querySelector('.slider-handle');
+                const track = captchaContainer.querySelector('.slider-track');
+                const max_move = track.clientWidth - handle.clientWidth;
+                
+                let isDragging = false;
+                let startX = 0;
+                
+                const startDrag = (e) => {
+                    isDragging = true;
+                    startX = e.clientX || e.touches[0].clientX;
+                    piece.style.transition = 'none';
+                    handle.style.transition = 'none';
+                    piece.style.cursor = 'grabbing';
+                };
+
+                const onDrag = (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    const currentX = e.clientX || e.touches[0].clientX;
+                    let moveX = currentX - startX;
+                    let newLeft = Math.max(0, Math.min(moveX, max_move));
+                    piece.style.left = newLeft + 'px';
+                    handle.style.left = newLeft + 'px';
+                };
+
+                const endDrag = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    piece.style.cursor = 'grab';
+                    captchaResponseInput.value = piece.style.left.replace('px', '');
+                };
+
+                handle.addEventListener('mousedown', startDrag);
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', endDrag);
+
+                handle.addEventListener('touchstart', startDrag, { passive: false });
+                document.addEventListener('touchmove', onDrag, { passive: false });
+                document.addEventListener('touchend', endDrag);
+            })
+            .catch(error => {
+                captchaContainer.innerHTML = `<div class="alert alert-danger">验证码加载失败，请刷新页面重试。</div>`;
+                console.error('Captcha load error:', error);
+            });
+    }
+
+    loadCaptcha();
+});
+</script>
+{% endblock %}

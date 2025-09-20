@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block top_actions %}
+  {% if current_user.is_admin and 'admin' in request.referrer %}
+  <a href="{{ url_for('admin_all_files') }}" class="btn btn-link ps-0">
+  {% else %}
+  <a href="{{ url_for('my_files') }}" class="btn btn-link ps-0">
+  {% endif %}
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
+    返回
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-info text-white">编辑文件信息</div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label for="title" class="form-label">标题</label>
+            <input type="text" class="form-control" id="title" name="title" maxlength="100" value="{{ file.title or '' }}">
+          </div>
+          <div class="mb-3">
+            <label for="version" class="form-label">版本号</label>
+            <input type="text" class="form-control" id="version" name="version" maxlength="50" value="{{ file.version or '' }}">
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">说明</label>
+            <textarea class="form-control" id="description" name="description" rows="3" maxlength="500">{{ file.description or '' }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label for="bilibili_link" class="form-label">Bilibili 视频链接</label>
+            <input type="url" class="form-control" id="bilibili_link" name="bilibili_link" value="{{ file.bilibili_link or '' }}" placeholder="https://www.bilibili.com/video/BV...">
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="login_required" id="login_required" {% if file.login_required %}checked{% endif %}>
+            <label class="form-check-label" for="login_required">需要登录后才能下载</label>
+          </div>
+          <button type="submit" class="btn btn-info w-100">保存修改</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

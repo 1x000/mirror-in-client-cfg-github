@@ -25,14 +25,9 @@
           {% endif %}
         </td>
         <td>
-          {% if file.status != 'approved' %}
-          <a href="{{ url_for('edit_my_file', file_id=file.id) }}" class="btn btn-outline-primary btn-sm">编辑</a>
           <form method="post" action="{{ url_for('delete_my_file', file_id=file.id) }}" style="display:inline;" onsubmit="return confirm('确定要删除该文件吗？')">
             <button type="submit" class="btn btn-outline-danger btn-sm">删除</button>
           </form>
-          {% else %}
-          <span class="text-muted small">不可操作</span>
-          {% endif %}
         </td>
       </tr>
       {% else %}

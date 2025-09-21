@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block top_actions %}
+  <a href="{{ url_for('admin_all_files') }}" class="btn btn-link ps-0">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/></svg>
+    返回文件列表
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow">
+      <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">移动文件: {{ file.title or file.filename }}</h5>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <p class="mb-1"><strong>当前所属文件夹:</strong> {{ current_folder.name if current_folder else '无' }}</p>
+          </div>
+          <div class="mb-3">
+            <label for="folder_id" class="form-label">选择新的文件夹</label>
+            <select class="form-select" id="folder_id" name="folder_id">
+              {% for folder in folders %}
+                <option value="{{ folder.id }}" {% if current_folder and folder.id == current_folder.id %}selected{% endif %}>
+                  {{ folder.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">确认移动</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

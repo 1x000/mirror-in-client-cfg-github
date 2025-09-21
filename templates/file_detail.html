@@ -9,11 +9,11 @@
 {% block content %}
 <div class="card shadow">
   <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-    <h4 class="mb-0">{{ file.version or file.title or file.filename }}</h4>
+    <h4 class="mb-0">{{ file.title or file.filename }}</h4>
     <div>
       {% if file.login_required %}<span class="badge bg-warning text-dark" title="需要登录才能下载">受保护</span>
       {% else %}<span class="badge bg-success" title="无需登录即可下载">公开</span>{% endif %}
-      {% if file.upload_type == 'admin' %}<span class="badge bg-primary">官方</span>
+      {% if file.upload_type == 'admin' %}<span class="badge bg-primary">路人上传</span>
       {% else %}<span class="badge bg-light text-dark">社区</span>{% endif %}
     </div>
   </div>
@@ -25,10 +25,28 @@
         <h5>文件详情</h5>
         <table class="table table-sm table-borderless">
           <tbody>
-            <tr><th scope="row" style="width: 100px;">版本号</th><td>{{ file.version or '未指定' }}</td></tr>
+            <tr><th scope="row" style="width: 120px;">上传者</th><td>{{ uploader }}</td></tr>
+            <tr><th scope="row">上传时间</th><td>{{ file.upload_time.strftime('%Y-%m-%d %H:%M') if file.upload_time else '未知' }}</td></tr>
+            <tr><th scope="row">文件大小</th><td>{{ file_size }}</td></tr>
+            <tr><th scope="row">预计下载时间</th><td>≈ {{ estimated_download_time }} (按2MB/s)</td></tr>
+            <tr><th scope="row">版本号</th><td>{{ file.version or '未指定' }}</td></tr>
             <tr><th scope="row">标题</th><td>{{ file.title or '无' }}</td></tr>
             <tr><th scope="row">所属文件夹</th><td>{{ folder.name }}</td></tr>
             <tr><th scope="row">文件名</th><td><span class="text-break">{{ file.filename }}</span></td></tr>
+            <tr>
+              <th scope="row">下载热度</th>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div class="download-xp-bar me-2" title="热度等级: {{ file.download_count | get_download_level }}">
+                    {% set level = file.download_count | get_download_level %}
+                    {% for i in range(1, 11) %}
+                      <div class="download-xp-segment {{ 'empty' if i > level }}"></div>
+                    {% endfor %}
+                  </div>
+                  <span class="badge bg-info">{{ level }}/10</span>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
         

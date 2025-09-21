@@ -11,8 +11,17 @@ from flask_login import LoginManager, login_user, logout_user, login_required, U
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+import time
 from PIL import Image, ImageDraw, ImageFont
 from functools import wraps
+import sqlite3
+import os
+import json
+import re
+import io
+import zipfile
+import time
+import math
 import zipfile
 # from flask_socketio import SocketIO
 import psutil
@@ -81,7 +90,7 @@ def init_db():
         cursor.execute('CREATE TABLE IF NOT EXISTS upload_logs (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)')
         cursor.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
         default_settings = {
-            'announcements': json.dumps([{'date': '2025-07-28', 'text': '欢迎来到本站！'}]),
+            'announcements': json.dumps([{'date': '2025-07-28', 'text': '欢迎来到本站！可以在后台进行编辑'}]),
             'contact_links': json.dumps([{'text': '意见反馈', 'url': '#'}]),
             'related_links': json.dumps([{'text': '使用帮助', 'url': '#'}]),
             'friend_links': json.dumps([{'text': '友情链接', 'url': '#'}]),
@@ -117,6 +126,25 @@ def admin_required(f):
 # ==============================================================================
 # 4. 图像生成及验证路由
 # ==============================================================================
+def get_download_level(count):
+    """将下载计数格式化为热度等级数字 (1-11)"""
+    if count is None:
+        return 0
+    if 1 <= count <= 10: return 1
+    elif 10 < count <= 50: return 2
+    elif 50 < count <= 100: return 3
+    elif 100 < count <= 500: return 4
+    elif 500 < count <= 1000: return 5
+    elif 1000 < count <= 10000: return 6
+    elif 10000 < count <= 50000: return 7
+    elif 50000 < count <= 100000: return 8
+    elif 100000 < count <= 1000000: return 9
+    elif 1000000 < count <= 10000000: return 10
+    elif count > 10000000: return 11
+    return 0
+
+app.jinja_env.filters['get_download_level'] = get_download_level
+
 def _serve_pil_image(pil_img):
     img_io = io.BytesIO(); pil_img.save(img_io, 'PNG'); img_io.seek(0)
     return send_file(img_io, mimetype='image/png')
@@ -374,12 +402,63 @@ def folder_detail(folder_id):
 @app.route('/file/<int:file_id>')
 def file_detail(file_id):
     db = get_db()
-    file = db.execute('SELECT * FROM files WHERE id=?', (file_id,)).fetchone()
-    if not file or file['status'] != 'approved': abort(404)
-    folder = db.execute('SELECT * FROM folders WHERE id=?', (file['folder_id'],)).fetchone()
+    file = db.execute('SELECT f.*, u.username FROM files f LEFT JOIN users u ON f.uploader_id = u.id WHERE f.id=? AND f.status="approved"', (file_id,)).fetchone()
+    if not file: abort(404)
+    
+    # 将数据库返回的 Row 对象转换为可修改的字典
+    file_dict = dict(file)
+
+    # 尝试将时间字符串转换为 datetime 对象
+    for key in ['upload_time', 'approve_time']:
+        if file_dict.get(key) and isinstance(file_dict[key], str):
+            try:
+                file_dict[key] = datetime.strptime(file_dict[key], '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                # 如果格式不匹配，可以尝试其他格式或保留为字符串
+                pass
+    
+    folder = db.execute('SELECT * FROM folders WHERE id=?', (file_dict['folder_id'],)).fetchone()
     proof_images = db.execute('SELECT filename FROM proof_images WHERE file_id=?', (file_id,)).fetchall()
-    embed_url = get_bilibili_embed_url(file['bilibili_link'])
-    return render_template('file_detail.html', file=file, folder=folder, proof_images=proof_images, embed_url=embed_url)
+    embed_url = get_bilibili_embed_url(file_dict['bilibili_link'])
+
+    uploader = file_dict['username']
+    if uploader == 'LEl_FENG':
+        uploader = '管理员'
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file_dict['filename'])
+    file_size_bytes = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+    
+    def format_size(size_bytes):
+        if size_bytes == 0: return "0 B"
+        size_name = ("B", "KB", "MB", "GB", "TB")
+        i = int(math.floor(math.log(size_bytes, 1024)))
+        p = math.pow(1024, i)
+        s = round(size_bytes / p, 2)
+        return f"{s} {size_name[i]}"
+
+    file_size_formatted = format_size(file_size_bytes)
+    
+    # 2MB/s
+    download_speed_mbps = 2
+    download_time_seconds = file_size_bytes / (download_speed_mbps * 1024 * 1024) if file_size_bytes > 0 else 0
+    
+    def format_duration(seconds):
+        if seconds < 1: return "小于1秒"
+        if seconds < 60: return f"{int(seconds)}秒"
+        minutes = int(seconds // 60)
+        seconds_rem = int(seconds % 60)
+        return f"{minutes}分{seconds_rem}秒"
+
+    estimated_download_time = format_duration(download_time_seconds)
+
+    return render_template('file_detail.html', 
+                           file=file_dict, 
+                           folder=folder, 
+                           proof_images=proof_images, 
+                           embed_url=embed_url,
+                           uploader=uploader,
+                           file_size=file_size_formatted,
+                           estimated_download_time=estimated_download_time)
 
 @app.route('/download_with_token/<token>')
 def download_with_token(token):
@@ -873,6 +952,30 @@ def admin_delete_file(file_id):
             pass
     flash('文件已成功删除', 'success')
     return redirect(request.referrer or url_for('admin_review'))
+
+@app.route('/admin/files/move/<int:file_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_move_file(file_id):
+    db = get_db()
+    file = db.execute('SELECT * FROM files WHERE id=?', (file_id,)).fetchone()
+    if not file:
+        flash('文件未找到。', 'danger')
+        return redirect(url_for('admin_all_files'))
+
+    if request.method == 'POST':
+        new_folder_id = request.form.get('folder_id', type=int)
+        if new_folder_id:
+            db.execute('UPDATE files SET folder_id = ? WHERE id = ?', (new_folder_id, file_id))
+            db.commit()
+            flash(f'文件已成功移动。', 'success')
+            return redirect(url_for('admin_all_files'))
+        else:
+            flash('无效的文件夹选择。', 'warning')
+
+    folders = db.execute('SELECT id, name FROM folders ORDER BY name').fetchall()
+    current_folder = db.execute('SELECT * FROM folders WHERE id=?', (file['folder_id'],)).fetchone() if file['folder_id'] else None
+    
+    return render_template('admin/move_file.html', file=file, folders=folders, current_folder=current_folder)
 
 @app.route('/batch_download', methods=['POST'])
 def batch_download():

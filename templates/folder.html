@@ -33,9 +33,10 @@
 
             {# 卡片主体内容区域 #}
             <div class="card-body p-3">
-              <h6 class="card-title fw-bold text-dark mb-2 text-truncate" title="{{ file.version or file.title or file.filename }}">{{ file.version or file.title or file.filename }}</h6>
+              <h6 class="card-title fw-bold text-dark mb-2 text-truncate" title="{{ file.title or file.filename }}">{{ file.title or file.filename }}</h6>
               <p class="card-text small text-muted mb-0 d-flex justify-content-between">
                 <span>{{ file.formatted_date }}</span>
+                <span class="badge bg-info-soft text-info">下载量: {{ file.download_count | default(0) }}</span>
               </p>
             </div>
           </a>
@@ -70,10 +71,6 @@
 <div class="container-fluid">
     <form id="batch-download-form" action="{{ url_for('batch_download') }}" method="post">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h1 class="h2">{{ folder.name }}</h1>
-                <p class="text-muted">{{ folder.description }}</p>
-            </div>
             <div class="btn-group">
                 <a href="{{ url_for('search', query='', folder_id=folder.id) }}" class="btn btn-outline-primary">
                     <i class="fas fa-search me-1"></i> 在当前文件夹内搜索

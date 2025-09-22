@@ -165,10 +165,7 @@
                         </ul>
                     </li>
                 </ul>
-                <form class="d-flex me-lg-2 mb-2 mb-lg-0" action="{{ url_for('search') }}" method="get">
-                    <input class="form-control me-2" type="search" name="query" placeholder="搜索镜像..." aria-label="Search" value="{{ request.args.get('query', '') }}">
-                    <button class="btn btn-outline-success" type="submit">搜索</button>
-                </form>
+                
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('my_files') }}">我的文件</a></li>

@@ -288,9 +288,18 @@ def inject_settings():
 @app.route('/')
 def index():
     db = get_db()
-    page = request.args.get('page', 1, type=int)
+    
+    # 统一处理排序参数
+    sort_by = request.args.get('sort_by', 'downloads')
+    sort_order = request.args.get('sort_order', 'desc')
+    
+    # 独立分页
+    file_page = request.args.get('file_page', 1, type=int)
+    folder_page = request.args.get('folder_page', 1, type=int)
     per_page = 10
-    offset = (page - 1) * per_page
+    
+    file_offset = (file_page - 1) * per_page
+    folder_offset = (folder_page - 1) * per_page
 
     stats = {
         'folder_count': db.execute('SELECT COUNT(*) FROM folders').fetchone()[0],
@@ -298,24 +307,72 @@ def index():
         'last_upload': db.execute("SELECT approve_time FROM files WHERE status='approved' ORDER BY approve_time DESC LIMIT 1").fetchone()
     }
     if stats['last_upload'] and stats['last_upload']['approve_time']:
-        time_str = stats['last_upload']['approve_time'].split('.')[0]
-        stats['last_upload_formatted'] = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M')
+        try:
+            time_str = stats['last_upload']['approve_time'].split('.')[0]
+            stats['last_upload_formatted'] = datetime.strptime(time_str, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M')
+        except (ValueError, TypeError):
+            stats['last_upload_formatted'] = stats['last_upload']['approve_time']
     else:
         stats['last_upload_formatted'] = '暂无'
     
-    # 获取分页后的文件
-    all_files_ranked = db.execute(f"""
-        SELECT f.id, f.title, f.version, f.filename, f.download_count, fo.name as folder_name
+    # 获取文件排名
+    file_order_field = "f.download_count" if sort_by == 'downloads' else "f.approve_time"
+    file_order_direction = "DESC" if sort_order == 'desc' else "ASC"
+    
+    files_query = f"""
+        SELECT f.id, f.title, f.version, f.filename, f.download_count, f.approve_time, fo.name as folder_name, fo.logo_filename as folder_logo
         FROM files f
         JOIN folders fo ON f.folder_id = fo.id
         WHERE f.status='approved' 
-        ORDER BY f.download_count DESC
-        LIMIT {per_page} OFFSET {offset}
-    """).fetchall()
+        ORDER BY {file_order_field} {file_order_direction}
+        LIMIT {per_page} OFFSET {file_offset}
+    """
+    all_files_ranked_raw = db.execute(files_query).fetchall()
+    
+    all_files_ranked = []
+    for file in all_files_ranked_raw:
+        file_dict = dict(file)
+        if file_dict['approve_time']:
+            try:
+                file_dict['approve_time'] = datetime.strptime(file_dict['approve_time'].split('.')[0], '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                pass
+        all_files_ranked.append(file_dict)
 
-    # 获取文件总数用于计算总页数
     total_files = db.execute("SELECT COUNT(*) FROM files WHERE status='approved'").fetchone()[0]
-    total_pages = math.ceil(total_files / per_page)
+    total_file_pages = math.ceil(total_files / per_page)
+
+    # 获取文件夹排名
+    folder_order_field = "total_downloads" if sort_by == 'downloads' else "last_upload_time"
+    folder_order_direction = "DESC" if sort_order == 'desc' else "ASC"
+
+    folders_query = f"""
+        SELECT
+            fo.id,
+            fo.name,
+            fo.logo_filename,
+            SUM(f.download_count) as total_downloads,
+            MAX(f.approve_time) as last_upload_time
+        FROM folders fo
+        LEFT JOIN files f ON fo.id = f.folder_id AND f.status = 'approved'
+        GROUP BY fo.id, fo.name, fo.logo_filename
+        ORDER BY {folder_order_field} {folder_order_direction}
+        LIMIT {per_page} OFFSET {folder_offset}
+    """
+    ranked_folders_raw = db.execute(folders_query).fetchall()
+
+    ranked_folders = []
+    for folder in ranked_folders_raw:
+        folder_dict = dict(folder)
+        if folder_dict['last_upload_time']:
+            try:
+                folder_dict['last_upload_time'] = datetime.strptime(folder_dict['last_upload_time'].split('.')[0], '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                 pass
+        ranked_folders.append(folder_dict)
+
+    total_folders = db.execute("SELECT COUNT(*) FROM folders").fetchone()[0]
+    total_folder_pages = math.ceil(total_folders / per_page)
 
     # 获取贡献者榜单
     contributors = db.execute("""
@@ -350,10 +407,14 @@ def index():
     return render_template('index.html', 
                            stats=stats, 
                            all_files_ranked=all_files_ranked,
+                           ranked_folders=ranked_folders,
                            contributors=contributors,
                            all_partitions=all_partitions,
                            groups_by_partition=groups_by_partition,
-                           pagination={'page': page, 'total_pages': total_pages})
+                           file_pagination={'page': file_page, 'total_pages': total_file_pages},
+                           folder_pagination={'page': folder_page, 'total_pages': total_folder_pages},
+                           sort_by=sort_by,
+                           sort_order=sort_order)
 
 @app.route('/partition/<slug>')
 def partition_view(slug):

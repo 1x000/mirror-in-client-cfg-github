@@ -1,104 +1,92 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h2 class="text-center mb-3">全站资源搜索</h2>
+                <form action="{{ url_for('search') }}" method="get">
+                    <div class="input-group input-group-lg">
+                        <input type="search" name="query" class="form-control" placeholder="输入关键词..." aria-label="Search" value="{{ request.args.get('query', '') }}">
+                        <button class="btn btn-primary" type="submit"><i class="fas fa-search me-2"></i>搜索</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- 主内容区 -->
     <div class="col-lg-8">
-        {% if not partitions %}
-            <div class="alert alert-warning">管理员尚未创建任何分区。</div>
-        {% endif %}
-
-        {# 遍历所有分区 #}
-        {% for p in all_partitions %}
-            {% set groups_in_p = groups_by_partition.get(p.id, []) %}
-            {% if groups_in_p %}
-                
-                {# 遍历分区下的分组 #}
-                {% for group in groups_in_p %}
-                    {% if group.folders %}
-                        <h4 class="h5 mb-3 mt-4 fw-normal"><i class="fas fa-layer-group me-2 text-muted"></i>{{ group.name or '未分类' }}</h4>
-                        
-                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-                        {# 遍历分组下的文件夹 #}
-                        {% for folder in group.folders %}
-                            <!-- 单个文件夹卡片 -->
-                            <div class="col">
-                                <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="text-decoration-none">
-                                    <div class="card h-100 text-center shadow-sm" style="transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-5px)';" onmouseout="this.style.transform='translateY(0)';">
-                                        <div style="height: 120px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
-                                            {% if folder.logo_filename %}
-                                            <img src="{{ url_for('static', filename='logos/' + folder.logo_filename) }}" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="{{ folder.name }} logo">
-                                            {% else %}
-                                            <i class="fas fa-cube fa-3x text-muted"></i>
-                                            {% endif %}
-                                        </div>
-                                        <div class="card-body py-2">
-                                            <h6 class="card-title mb-1 text-dark text-truncate" title="{{ folder.name }}">{{ folder.name }}</h6>
-                                        </div>
-                                        <div class="card-footer bg-transparent border-0 pt-0 pb-2">
-                                            <small class="text-muted text-truncate d-block" title="{{ folder.description }}">{{ folder.description or ' ' }}</small>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
+        <h4 class="h5 mb-3 mt-4 fw-normal"><i class="fas fa-file-alt me-2 text-muted"></i>所有文件 (按下载量排名)</h4>
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <table class="table table-hover small">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 5%;">#</th>
+                            <th scope="col">标题</th>
+                            <th scope="col">所属文件夹</th>
+                            <th scope="col" class="text-end">下载量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in all_files_ranked %}
+                        <tr>
+                            <th scope="row">{{ loop.index + (pagination.page - 1) * 10 }}</th>
+                            <td><a href="{{ url_for('file_detail', file_id=file.id) }}" class="text-decoration-none">{{ file.title or file.filename }}</a></td>
+                            <td>{{ file.folder_name }}</td>
+                            <td class="text-end">{{ file.download_count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">暂无文件</td>
+                        </tr>
                         {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if pagination.total_pages > 1 %}
+            <div class="card-footer bg-white">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <li class="page-item {% if pagination.page == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('index', page=pagination.page - 1) }}">上一页</a>
+                        </li>
+                        {% for p in range(1, pagination.total_pages + 1) %}
+                        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('index', page=p) }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                        <li class="page-item {% if pagination.page == pagination.total_pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('index', page=pagination.page + 1) }}">下一页</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
             {% endif %}
-        {% endfor %}
-
-        {# 处理未分配到任何分区的分组 #}
-        {% set ungrouped_groups = groups_by_partition.get(None, []) %}
-        {% if ungrouped_groups %}
-            <h2 class="h3 mb-3 mt-4">未分区内容</h2>
-            {% for group in ungrouped_groups %}
-                {% if group.folders %}
-                    <h4 class="h5 mb-3 mt-4 fw-normal"><i class="fas fa-layer-group me-2 text-muted"></i>{{ group.name or '未分类' }}</h4>
-                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
-                    {% for folder in group.folders %}
-                        <!-- 单个文件夹卡片 -->
-                        <div class="col">
-                            <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="text-decoration-none">
-                                <div class="card h-100 text-center shadow-sm" style="transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-5px)';" onmouseout="this.style.transform='translateY(0)';">
-                                    <div style="height: 120px; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
-                                        {% if folder.logo_filename %}
-                                        <img src="{{ url_for('static', filename='logos/' + folder.logo_filename) }}" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="{{ folder.name }} logo">
-                                        {% else %}
-                                        <i class="fas fa-cube fa-3x text-muted"></i>
-                                        {% endif %}
-                                    </div>
-                                    <div class="card-body py-2">
-                                        <h6 class="card-title mb-1 text-dark text-truncate" title="{{ folder.name }}">{{ folder.name }}</h6>
-                                    </div>
-                                    <div class="card-footer bg-transparent border-0 pt-0 pb-2">
-                                        <small class="text-muted text-truncate d-block" title="{{ folder.description }}">{{ folder.description or ' ' }}</small>
-                                    </div>
-                                </div>
-                            </a>
-                        </div>
-                    {% endfor %}
-                    </div>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-
+        </div>
     </div>
 
     <!-- 侧边栏 -->
     <div class="col-lg-4">
         <div class="sticky-top" style="top: 1.5rem;">
-            <!-- 热门下载 -->
+            <!-- 贡献者榜单 -->
             <div class="card shadow-sm mb-4">
-                <div class="card-header"><i class="fas fa-fire me-2"></i>热门下载 Top 10</div>
+                <div class="card-header"><i class="fas fa-trophy me-2"></i>贡献者榜单</div>
                 <ul class="list-group list-group-flush small">
-                    {% for file in hot_files %}
-                    <li class="list-group-item d-flex align-items-center">
-                        <span class="badge bg-secondary me-3" style="width: 2em;">{{ loop.index }}</span>
-                        <a href="{{ url_for('file_detail', file_id=file.id) }}" class="text-truncate text-decoration-none">{{ file.title or file.version or file.filename }}</a>
+                    {% for contributor in contributors %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                            {{ contributor.username }}
+                        </span>
+                        <span class="badge bg-primary rounded-pill">{{ contributor.upload_count }} 次上传</span>
                     </li>
                     {% else %}
-                    <li class="list-group-item text-muted">暂无下载记录</li>
+                    <li class="list-group-item text-muted">暂无贡献记录</li>
                     {% endfor %}
                 </ul>
             </div>

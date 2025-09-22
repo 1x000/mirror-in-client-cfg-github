@@ -6,23 +6,17 @@ import uuid
 import time
 import re
 import json
+import math
+import zipfile
+from functools import wraps
+from itertools import groupby
+
 from flask import Flask, render_template, request, redirect, url_for, flash, g, send_from_directory, abort, session, jsonify, make_response, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-import time
 from PIL import Image, ImageDraw, ImageFont
-from functools import wraps
-import sqlite3
-import os
-import json
-import re
-import io
-import zipfile
-import time
-import math
-import zipfile
 # from flask_socketio import SocketIO
 import psutil
 
@@ -294,6 +288,10 @@ def inject_settings():
 @app.route('/')
 def index():
     db = get_db()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+
     stats = {
         'folder_count': db.execute('SELECT COUNT(*) FROM folders').fetchone()[0],
         'file_count': db.execute("SELECT COUNT(*) FROM files WHERE status='approved'").fetchone()[0],
@@ -305,27 +303,39 @@ def index():
     else:
         stats['last_upload_formatted'] = '暂无'
     
-    # 获取热门下载
-    hot_files = db.execute("""
-        SELECT id, title, version, filename, download_count 
-        FROM files 
-        WHERE status='approved' 
-        ORDER BY download_count DESC 
+    # 获取分页后的文件
+    all_files_ranked = db.execute(f"""
+        SELECT f.id, f.title, f.version, f.filename, f.download_count, fo.name as folder_name
+        FROM files f
+        JOIN folders fo ON f.folder_id = fo.id
+        WHERE f.status='approved' 
+        ORDER BY f.download_count DESC
+        LIMIT {per_page} OFFSET {offset}
+    """).fetchall()
+
+    # 获取文件总数用于计算总页数
+    total_files = db.execute("SELECT COUNT(*) FROM files WHERE status='approved'").fetchone()[0]
+    total_pages = math.ceil(total_files / per_page)
+
+    # 获取贡献者榜单
+    contributors = db.execute("""
+        SELECT u.username, COUNT(f.id) as upload_count
+        FROM users u
+        JOIN files f ON u.id = f.uploader_id
+        WHERE f.status = 'approved'
+        GROUP BY u.id
+        ORDER BY upload_count DESC
         LIMIT 10
     """).fetchall()
 
     # 使用 itertools.groupby 优化数据结构组织
-    from itertools import groupby
-
-    # 1. 获取所有文件夹并按 group_id 分组
     all_folders_query = db.execute("SELECT * FROM folders ORDER BY group_id, name").fetchall()
     folders_by_group = {k: list(v) for k, v in groupby(all_folders_query, key=lambda f: f['group_id'])}
 
-    # 2. 获取所有分组并按 partition_id 分组
     all_groups_query = db.execute("SELECT g.*, p.name as partition_name, p.slug as partition_slug FROM groups g LEFT JOIN partitions p ON g.partition_id = p.id ORDER BY p.display_order, g.display_order").fetchall()
     groups_by_partition_raw = {k: list(v) for k, v in groupby(all_groups_query, key=lambda g: g['partition_id'])}
 
-    # 3. 组合分组和文件夹
+    # 组合分组和文件夹
     groups_by_partition = {}
     for p_id, groups in groups_by_partition_raw.items():
         groups_with_folders = []
@@ -339,9 +349,11 @@ def index():
 
     return render_template('index.html', 
                            stats=stats, 
-                           hot_files=hot_files,
+                           all_files_ranked=all_files_ranked,
+                           contributors=contributors,
                            all_partitions=all_partitions,
-                           groups_by_partition=groups_by_partition)
+                           groups_by_partition=groups_by_partition,
+                           pagination={'page': page, 'total_pages': total_pages})
 
 @app.route('/partition/<slug>')
 def partition_view(slug):
@@ -379,7 +391,6 @@ def folder_detail(folder_id):
     all_approved_files_raw = db.execute("SELECT * FROM files WHERE folder_id=? AND status='approved' ORDER BY upload_type, approve_time DESC", (folder_id,)).fetchall()
     
     # 格式化日期并使用 itertools.groupby 分离文件
-    from itertools import groupby
     
     def format_and_group(files):
         for file in files:
